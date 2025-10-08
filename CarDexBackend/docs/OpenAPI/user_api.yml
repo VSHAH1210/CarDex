@@ -1,0 +1,667 @@
+openapi: 3.0.3
+info:
+  title: Vehicle Trading Card Game API - User Module
+  description: API endpoints for user management, authentication, and user inventory
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: https://api.yourgame.com/v1
+    description: Production server
+  - url: https://staging-api.yourgame.com/v1
+    description: Staging server
+
+tags:
+  - name: Authentication
+    description: User registration and authentication endpoints
+  - name: User Profile
+    description: User profile management
+  - name: User Inventory
+    description: Access user's cards, packs, and trade history
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Creates a new user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  minLength: 3
+                  maxLength: 20
+                  example: "racer123"
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: "SecurePass123!"
+      responses:
+        '201':
+          description: User successfully created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    example: "550e8400-e29b-41d4-a716-446655440000"
+                  username:
+                    type: string
+                    example: "racer123"
+                  currency:
+                    type: integer
+                    example: 1000
+                  created_at:
+                    type: string
+                    format: date-time
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Username already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: Authenticates user and returns access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: "racer123"
+                password:
+                  type: string
+                  format: password
+                  example: "SecurePass123!"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  token_type:
+                    type: string
+                    example: "Bearer"
+                  expires_in:
+                    type: integer
+                    description: Token expiration time in seconds
+                    example: 3600
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: Invalidates the current access token
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Logout successful
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{userId}:
+    get:
+      tags:
+        - User Profile
+      summary: Get user profile by ID
+      description: Returns public profile information for any user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User ID
+      responses:
+        '200':
+          description: User profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublic'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      tags:
+        - User Profile
+      summary: Update user profile
+      description: Updates the authenticated user's profile (can only update own profile)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User ID (must match authenticated user)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  minLength: 3
+                  maxLength: 20
+                  example: "newUsername"
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: "NewSecurePass123!"
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Cannot update another user's profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Username already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{userId}/cards:
+    get:
+      tags:
+        - User Inventory
+      summary: Get user's card collection
+      description: Returns all cards owned by the user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User ID
+        - name: collectionId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by collection ID
+        - name: grade
+          in: query
+          schema:
+            type: string
+            enum: [FACTORY, LIMITED_RUN, NISMO]
+          description: Filter by card grade
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Number of results per page
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Number of results to skip
+      responses:
+        '200':
+          description: Cards retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cards:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CardSummary'
+                  total:
+                    type: integer
+                    example: 150
+                  limit:
+                    type: integer
+                    example: 50
+                  offset:
+                    type: integer
+                    example: 0
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{userId}/packs:
+    get:
+      tags:
+        - User Inventory
+      summary: Get user's unopened packs
+      description: Returns all unopened packs owned by the user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User ID
+        - name: collectionId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by collection ID
+      responses:
+        '200':
+          description: Packs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  packs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PackSummary'
+                  total:
+                    type: integer
+                    example: 5
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{userId}/trades:
+    get:
+      tags:
+        - User Inventory
+      summary: Get user's open trades
+      description: Returns all active trades created by the user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User ID
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [FOR_CARD, FOR_PRICE]
+          description: Filter by trade type
+      responses:
+        '200':
+          description: Trades retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trades:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OpenTradeSummary'
+                  total:
+                    type: integer
+                    example: 3
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{userId}/trade-history:
+    get:
+      tags:
+        - User Inventory
+      summary: Get user's trade history
+      description: Returns completed trades where user was buyer or seller
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User ID
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [seller, buyer, all]
+            default: all
+          description: Filter by user's role in trade
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Number of results per page
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Number of results to skip
+      responses:
+        '200':
+          description: Trade history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trades:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CompletedTradeSummary'
+                  total:
+                    type: integer
+                    example: 42
+                  limit:
+                    type: integer
+                    example: 50
+                  offset:
+                    type: integer
+                    example: 0
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{userId}/rewards:
+    get:
+      tags:
+        - User Inventory
+      summary: Get user's pending rewards
+      description: Returns all claimable rewards for the user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User ID (must match authenticated user)
+        - name: claimed
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Include claimed rewards
+      responses:
+        '200':
+          description: Rewards retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rewards:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RewardSummary'
+                  total:
+                    type: integer
+                    example: 2
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Cannot view another user's rewards
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        username:
+          type: string
+          example: "racer123"
+        currency:
+          type: integer
+          example: 5000
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    UserPublic:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        username:
+          type: string
+          example: "racer123"
+        created_at:
+          type: string
+          format: date-time
+
+    CardSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        vehicle_id:
+          type: string
+          format: uuid
+        collection_id:
+          type: string
+          format: uuid
+        grade:
+          type: string
+          enum: [FACTORY, LIMITED_RUN, NISMO]
+        value:
+          type: integer
+
+    PackSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        collection_id:
+          type: string
+          format: uuid
+        value:
+          type: integer
+
+    OpenTradeSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [FOR_CARD, FOR_PRICE]
+        card_id:
+          type: string
+          format: uuid
+        price:
+          type: integer
+        want_card_id:
+          type: string
+          format: uuid
+          nullable: true
+
+    CompletedTradeSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [FOR_CARD, FOR_PRICE]
+        seller_user_id:
+          type: string
+          format: uuid
+        seller_card_id:
+          type: string
+          format: uuid
+        buyer_user_id:
+          type: string
+          format: uuid
+        buyer_card_id:
+          type: string
+          format: uuid
+          nullable: true
+        price:
+          type: integer
+        executed_date:
+          type: string
+          format: date-time
+
+    RewardSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [PACK, CURRENCY, CARD_FROM_TRADE, CURRENCY_FROM_TRADE]
+        item_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Pack or Card ID (null for currency)
+        amount:
+          type: integer
+          nullable: true
+          description: Currency amount (null for non-currency rewards)
+        created_at:
+          type: string
+          format: date-time
+        claimed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Invalid credentials"
+        code:
+          type: string
+          example: "AUTH_FAILED"
+        timestamp:
+          type: string
+          format: date-time

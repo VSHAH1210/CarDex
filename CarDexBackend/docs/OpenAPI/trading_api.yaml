@@ -1,0 +1,596 @@
+openapi: 3.0.3
+info:
+  title: CarDex - Trading
+  description: API endpoints for creating, browsing, and executing trades
+  version: 0.1.0
+  contact:
+    name: API Support
+
+servers:
+  - url: https://api.yourgame.com/v1
+    description: Production server
+  - url: https://staging-api.yourgame.com/v1
+    description: Staging server
+
+tags:
+  - name: Open Trades
+    description: Create and manage active trade listings
+  - name: Trade Execution
+    description: Accept and complete trades
+  - name: Trade History
+    description: View completed trade records
+
+paths:
+  /trades:
+    get:
+      tags:
+        - Open Trades
+      summary: Browse all open trades
+      description: Returns marketplace of all active trade listings with filtering and sorting
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [FOR_CARD, FOR_PRICE]
+          description: Filter by trade type
+        - name: collectionId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by card collection
+        - name: grade
+          in: query
+          schema:
+            type: string
+            enum: [FACTORY, LIMITED_RUN, NISMO]
+          description: Filter by card grade
+        - name: minPrice
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+          description: Minimum price filter
+        - name: maxPrice
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+          description: Maximum price filter
+        - name: vehicleId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by specific vehicle
+        - name: wantCardId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter trades wanting a specific card
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [price_asc, price_desc, date_asc, date_desc, value_asc, value_desc]
+            default: date_desc
+          description: Sort order
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Number of results per page
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Number of results to skip
+      responses:
+        '200':
+          description: Trades retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trades:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OpenTrade'
+                  total:
+                    type: integer
+                    example: 234
+                  limit:
+                    type: integer
+                    example: 50
+                  offset:
+                    type: integer
+                    example: 0
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Open Trades
+      summary: Create a new trade
+      description: Lists a card for trade (either for currency or for another card)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - card_id
+              properties:
+                type:
+                  type: string
+                  enum: [FOR_CARD, FOR_PRICE]
+                  example: "FOR_PRICE"
+                card_id:
+                  type: string
+                  format: uuid
+                  description: ID of card being offered
+                  example: "550e8400-e29b-41d4-a716-446655440001"
+                price:
+                  type: integer
+                  minimum: 0
+                  description: Required for FOR_PRICE trades, currency amount
+                  example: 1500
+                want_card_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                  description: Required for FOR_CARD trades, specific card wanted
+                  example: "550e8400-e29b-41d4-a716-446655440002"
+      responses:
+        '201':
+          description: Trade created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpenTrade'
+        '400':
+          description: Invalid input (missing required fields, invalid type combination)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - User doesn't own the card or card is already listed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Card not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /trades/{tradeId}:
+    get:
+      tags:
+        - Open Trades
+      summary: Get open trade details
+      description: Returns detailed information about a specific open trade
+      parameters:
+        - name: tradeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Trade ID
+      responses:
+        '200':
+          description: Trade details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpenTradeDetailed'
+        '404':
+          description: Trade not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Open Trades
+      summary: Cancel trade
+      description: Removes trade listing and returns card to owner's available inventory
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: tradeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Trade ID
+      responses:
+        '204':
+          description: Trade cancelled successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Not the trade owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Trade not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /trades/{tradeId}/execute:
+    post:
+      tags:
+        - Trade Execution
+      summary: Execute/accept a trade
+      description: Completes the trade, transferring cards/currency between users and creating rewards
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: tradeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Trade ID
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                buyer_card_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+                  description: Required for FOR_CARD trades - the card being offered by buyer
+                  example: "550e8400-e29b-41d4-a716-446655440002"
+      responses:
+        '200':
+          description: Trade executed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  completed_trade:
+                    $ref: '#/components/schemas/CompletedTrade'
+                  seller_reward:
+                    $ref: '#/components/schemas/Reward'
+                  buyer_reward:
+                    $ref: '#/components/schemas/Reward'
+        '400':
+          description: Invalid request (missing card for FOR_CARD trade, insufficient funds, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Cannot execute own trade, or buyer doesn't own required card
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Trade not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict - Insufficient currency or card already traded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /trades/history:
+    get:
+      tags:
+        - Trade History
+      summary: Browse all completed trades
+      description: Returns history of all executed trades
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by specific user (as buyer or seller)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Number of results per page
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Number of results to skip
+      responses:
+        '200':
+          description: Trade history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trades:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CompletedTrade'
+                  total:
+                    type: integer
+                    example: 1523
+                  limit:
+                    type: integer
+                    example: 50
+                  offset:
+                    type: integer
+                    example: 0
+
+  /trades/history/{tradeId}:
+    get:
+      tags:
+        - Trade History
+      summary: Get completed trade details
+      description: Returns detailed information about a specific completed trade
+      parameters:
+        - name: tradeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Completed trade ID
+      responses:
+        '200':
+          description: Trade details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompletedTradeDetailed'
+        '404':
+          description: Trade not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    OpenTrade:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440010"
+        type:
+          type: string
+          enum: [FOR_CARD, FOR_PRICE]
+          example: "FOR_PRICE"
+        user_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        username:
+          type: string
+          example: "racer123"
+        card_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        price:
+          type: integer
+          example: 1500
+        want_card_id:
+          type: string
+          format: uuid
+          nullable: true
+          example: null
+        created_at:
+          type: string
+          format: date-time
+
+    OpenTradeDetailed:
+      allOf:
+        - $ref: '#/components/schemas/OpenTrade'
+        - type: object
+          properties:
+            card:
+              $ref: '#/components/schemas/CardDetail'
+            want_card:
+              allOf:
+                - $ref: '#/components/schemas/CardDetail'
+                - nullable: true
+
+    CompletedTrade:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440020"
+        type:
+          type: string
+          enum: [FOR_CARD, FOR_PRICE]
+          example: "FOR_PRICE"
+        seller_user_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        seller_username:
+          type: string
+          example: "racer123"
+        seller_card_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        buyer_user_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440005"
+        buyer_username:
+          type: string
+          example: "collector99"
+        buyer_card_id:
+          type: string
+          format: uuid
+          nullable: true
+          example: null
+        executed_date:
+          type: string
+          format: date-time
+        price:
+          type: integer
+          example: 1500
+
+    CompletedTradeDetailed:
+      allOf:
+        - $ref: '#/components/schemas/CompletedTrade'
+        - type: object
+          properties:
+            seller_card:
+              $ref: '#/components/schemas/CardDetail'
+            buyer_card:
+              allOf:
+                - $ref: '#/components/schemas/CardDetail'
+                - nullable: true
+
+    CardDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        vehicle_id:
+          type: string
+          format: uuid
+        collection_id:
+          type: string
+          format: uuid
+        grade:
+          type: string
+          enum: [FACTORY, LIMITED_RUN, NISMO]
+        value:
+          type: integer
+        vehicle:
+          $ref: '#/components/schemas/VehicleInfo'
+
+    VehicleInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        year:
+          type: string
+          example: "1999"
+        make:
+          type: string
+          example: "Nissan"
+        model:
+          type: string
+          example: "Skyline GT-R R34"
+        image:
+          type: string
+          format: uri
+          example: "https://cdn.yourgame.com/vehicles/r34-gtr.jpg"
+
+    Reward:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [PACK, CURRENCY, CARD_FROM_TRADE, CURRENCY_FROM_TRADE]
+        item_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Pack or Card ID (null for currency)
+        amount:
+          type: integer
+          nullable: true
+          description: Currency amount (null for non-currency rewards)
+        created_at:
+          type: string
+          format: date-time
+        claimed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Insufficient currency"
+        code:
+          type: string
+          example: "INSUFFICIENT_FUNDS"
+        timestamp:
+          type: string
+          format: date-time
