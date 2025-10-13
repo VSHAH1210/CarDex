@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CarDexBackend")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+09373b079e17572e924dbfe1d9b1cd4ddd482b58")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a0b55d9592ca4b631526aeeb89c0aba5d02cd948")]
 [assembly: System.Reflection.AssemblyProductAttribute("CarDexBackend")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CarDexBackend")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
