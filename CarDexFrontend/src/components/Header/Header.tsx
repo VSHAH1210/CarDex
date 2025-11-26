@@ -1,15 +1,17 @@
 import React, { useState } from "react";
 import styles from "./Header.module.css";
+import Button from "../Button/Button";
 
 export type NavItem = "OPEN" | "GARAGE" | "TRADE";
 
 export type HeaderProps = {
   activeNav: NavItem;
   onNavChange: (nav: NavItem) => void;
-  coinBalance: number;
-  userLevel: number;
+  coinBalance?: number;
+  userLevel?: number;
   logoUrl?: string;
   coinIconUrl?: string;
+  onLogout?: () => void; // Optional logout handler
 };
 
 export default function Header({
@@ -19,6 +21,7 @@ export default function Header({
   userLevel,
   logoUrl,
   coinIconUrl,
+  onLogout,
 }: HeaderProps) {
   const navItems: NavItem[] = ["OPEN", "GARAGE", "TRADE"];
 
@@ -58,9 +61,20 @@ export default function Header({
               "🪙"
             )}
           </span>
-          <span className="header-2">{coinBalance.toLocaleString()}</span>
+          <span className="header-2">{coinBalance !== undefined ? coinBalance.toLocaleString() : "0"}</span>
         </div>
-        <div className={`${styles.level} header-2`}>{userLevel}</div>
+        <div className={`${styles.level} header-2`}>{userLevel || "0"}</div>
+        
+        {/* Logout Button */}
+        {onLogout && (
+          <Button
+            onClick={onLogout}
+            variant="secondary"
+            size="regular"
+          >
+            Logout
+          </Button>
+        )}
       </div>
     </header>
   );

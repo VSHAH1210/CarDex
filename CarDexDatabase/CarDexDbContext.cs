@@ -92,18 +92,18 @@ namespace CarDexDatabase
                     .HasColumnName("value")
                     .HasDefaultValue(0);
 
-                // Foreign keys
-                entity.HasOne<User>()
-                    .WithMany(u => u.Cards)
+                // Foreign keys with navigation properties
+                entity.HasOne(e => e.User)
+                    .WithMany()
                     .HasForeignKey(e => e.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasOne<Vehicle>()
+                entity.HasOne(e => e.Vehicle)
                     .WithMany()
                     .HasForeignKey(e => e.VehicleId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasOne<Collection>()
+                entity.HasOne(e => e.Collection)
                     .WithMany()
                     .HasForeignKey(e => e.CollectionId)
                     .OnDelete(DeleteBehavior.Cascade);
