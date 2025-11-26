@@ -27,12 +27,25 @@ export enum RewardEnum {
 export interface User {
   id: string;
   username: string;
-  password: string;
+  password?: string;
   currency: number;
-  owned_cards: string[];
-  owned_packs: string[];
-  open_trades: string[];
-  trade_history: string[];
+  owned_cards?: string[];
+  owned_packs?: string[];
+  open_trades?: string[];
+  trade_history?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface UserPublicProfileResponse {
+  id: string;
+  username: string;
+  createdAt: string;
+}
+
+export interface UserProfileResponse extends UserPublicProfileResponse {
+  currency: number;
+  updatedAt: string;
 }
 
 export interface Vehicle {
@@ -49,16 +62,18 @@ export interface Vehicle {
 
 export interface Card {
   id: string;
-  user_id: string;
-  vehicle_id: string;
-  collection_id: string;
-  grade: GradeEnum;
+  user_id?: string;
+  vehicle_id?: string;
+  collection_id?: string;
+  grade: GradeEnum | string;
   value: number;
+  name?: string;
+  createdAt?: string;
 }
 
 export interface Pack {
   id: string;
-  user_id: string;
+  user_id?: string;
   collection_id: string;
   value: number;
 }
@@ -197,4 +212,162 @@ export interface CollectionDetailedResponse {
   description: string;
   cardCount: number;
   cards: CollectionCard[];
+}
+
+/**
+ * Backend DTOs (API Contracts)
+ */
+
+export interface CardSummaryResponse {
+  id: string;
+  name: string;
+  grade: GradeEnum | string;
+  value: number;
+  createdAt: string;
+}
+
+export interface CardListResponseDto {
+  cards: CardSummaryResponse[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface CardDetailedResponse extends CardSummaryResponse {
+  description: string;
+  vehicleId: string;
+  collectionId: string;
+  ownerId: string;
+}
+
+export interface UserCardSummary {
+  id: string;
+  vehicleId: string;
+  collectionId: string;
+  grade: GradeEnum;
+  value: number;
+}
+
+export interface UserCardListResponse {
+  cards: UserCardSummary[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface UserPackSummary {
+  id: string;
+  collectionId: string;
+  collectionName?: string;
+  value: number;
+}
+
+export interface UserPackListResponse {
+  packs: UserPackSummary[];
+  total: number;
+}
+
+export interface UserRewardItem {
+  id: string;
+  userId: string;
+  type: RewardEnum;
+  itemId: string | null;
+  amount: number | null;
+  createdAt: string;
+  claimedAt: string | null;
+}
+
+export interface UserRewardListResponse {
+  rewards: UserRewardItem[];
+  total: number;
+}
+
+export interface TradeResponseDto {
+  id: string;
+  type: TradeEnum | string;
+  userId: string;
+  username: string;
+  cardId: string;
+  price: number | null;
+  wantCardId: string | null;
+  createdAt: string;
+}
+
+export interface TradeDetailedResponseDto extends TradeResponseDto {
+  card?: CardDetailedResponse | null;
+  wantCard?: CardDetailedResponse | null;
+}
+
+export interface TradeListResponseDto {
+  trades: TradeResponseDto[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface UserTradeResponseDto {
+  id: string;
+  type: TradeEnum | string;
+  cardId: string;
+  price: number | null;
+  wantCardId: string | null;
+  createdAt: string;
+}
+
+export interface UserTradeListResponseDto {
+  trades: UserTradeResponseDto[];
+  total: number;
+}
+
+export interface CompletedTradeDto {
+  id: string;
+  type: TradeEnum | string;
+  sellerUserId: string;
+  sellerCardId: string;
+  buyerUserId: string;
+  buyerCardId: string | null;
+  executedDate: string;
+  price: number;
+}
+
+export interface ExecuteTradeResponseDto {
+  completed_trade: CompletedTradeDto;
+  seller_reward: UserRewardItem | null;
+  buyer_reward: UserRewardItem | null;
+}
+
+export interface CollectionSummary {
+  id: string;
+  name: string;
+  theme: string;
+  description: string;
+  cardCount: number;
+}
+
+export interface CollectionListResponse {
+  collections: CollectionSummary[];
+  total: number;
+}
+
+export interface PackResponseDto {
+  id: string;
+  collectionId: string;
+  collectionName: string;
+  purchasedAt: string;
+  isOpened: boolean;
+}
+
+export interface PackPurchaseResponseDto {
+  pack: PackResponseDto;
+  userCurrency: number;
+}
+
+export interface PackOpenResponseDto {
+  cards: CardDetailedResponse[];
+  pack: PackResponseDto;
+}
+
+export interface PackDetailedResponseDto extends PackResponseDto {
+  previewCards: CardSummaryResponse[];
+  estimatedValue: number;
 }

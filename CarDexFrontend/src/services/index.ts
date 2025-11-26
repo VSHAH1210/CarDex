@@ -12,6 +12,6 @@ export { collectionService } from './collectionService';
 
 // Export types
 export type { LoginRequest, RegisterRequest, AuthResponse } from './authService';
-export type { OpenPackResponse } from './packService';
+export type { PackPurchaseRequest } from './packService';
 export type { CreateTradeRequest } from './tradeService';
 export type { UpdateProfileRequest } from './userService';

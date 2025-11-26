@@ -40,7 +40,7 @@ export const tradeService = {
    */
   getUserTrades: async (userId: string): Promise<OpenTrade[]> => {
     const response = await apiClient.get<OpenTrade[]>(
-      API_CONFIG.ENDPOINTS.TRADES.GET_USER_TRADES(userId)
+      API_CONFIG.ENDPOINTS.USERS.GET_TRADES(userId)
     );
     return response.data;
   },
@@ -59,9 +59,10 @@ export const tradeService = {
   /**
    * Accept a trade
    */
-  acceptTrade: async (tradeId: string): Promise<CompletedTrade> => {
+  acceptTrade: async (tradeId: string, payload?: Record<string, unknown>): Promise<CompletedTrade> => {
     const response = await apiClient.post<CompletedTrade>(
-      API_CONFIG.ENDPOINTS.TRADES.ACCEPT(tradeId)
+      API_CONFIG.ENDPOINTS.TRADES.EXECUTE(tradeId),
+      payload
     );
     return response.data;
   },

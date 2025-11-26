@@ -5,7 +5,7 @@ using CarDexBackend.Domain.Entities;
 using CarDexBackend.Domain.Enums;
 using Microsoft.Extensions.Localization;
 using CarDexBackend.Services.Resources;
-using CarDexBackend.Domain.Entities;
+using System.Linq;
 
 namespace CarDexBackend.Services
 {
@@ -21,6 +21,7 @@ namespace CarDexBackend.Services
         private readonly IOpenTradeRepository _openTradeRepo;
         private readonly ICompletedTradeRepository _tradeRepo;
         private readonly IRewardRepository _rewardRepo;
+        private readonly ICollectionRepository _collectionRepo;
         private readonly IRepository<Vehicle> _vehicleRepo;
 
         public UserService(
@@ -30,6 +31,7 @@ namespace CarDexBackend.Services
             IOpenTradeRepository openTradeRepo,
             ICompletedTradeRepository tradeRepo,
             IRewardRepository rewardRepo,
+            ICollectionRepository collectionRepo,
             IRepository<Vehicle> vehicleRepo,
             IStringLocalizer<SharedResources> sr)
         {
@@ -39,6 +41,7 @@ namespace CarDexBackend.Services
             _openTradeRepo = openTradeRepo;
             _tradeRepo = tradeRepo;
             _rewardRepo = rewardRepo;
+            _collectionRepo = collectionRepo;
             _vehicleRepo = vehicleRepo;
             _sr = sr;
         }
@@ -256,50 +259,50 @@ namespace CarDexBackend.Services
             int offset)
         {
             // Verify user exists
-            var userExists = await _context.Users.AnyAsync(u => u.Id == userId);
-            if (!userExists)
+            var user = await _userRepo.GetByIdAsync(userId);
+            if (user == null)
                 throw new KeyNotFoundException(_sr["UserNotFoundError"]);
 
-            // Build query with vehicle join
-            IQueryable<Card> query = _context.Cards
-                .Where(c => c.UserId == userId)
-                .Include(c => c.Vehicle);  // Join with Vehicle table
+            var (cards, total) = await _cardRepo.GetCardsAsync(
+                userId: userId,
+                collectionId: collectionId,
+                vehicleId: null,
+                grade: grade,
+                minValue: null,
+                maxValue: null,
+                sortBy: null,
+                limit: limit,
+                offset: offset);
 
-            // Apply optional filters
-            if (collectionId.HasValue)
-                query = query.Where(c => c.CollectionId == collectionId);
+            var cardList = cards.ToList();
 
-            if (!string.IsNullOrEmpty(grade))
-                query = query.Where(c => c.Grade.ToString() == grade);
+            var vehicleIds = cardList.Select(c => c.VehicleId).Distinct().ToList();
+            var vehicles = await _vehicleRepo.FindAsync(v => vehicleIds.Contains(v.Id));
+            var vehicleMap = vehicles.ToDictionary(v => v.Id, v => v);
 
-            var total = await query.CountAsync();
-
-            // Fetch cards with vehicle details
-            var cards = await query
-                .Skip(offset)
-                .Take(limit)
-                .Select(c => new UserCardWithVehicleResponse
+            var cardResponses = cardList.Select(c =>
+            {
+                vehicleMap.TryGetValue(c.VehicleId, out var vehicle);
+                return new UserCardWithVehicleResponse
                 {
-                    // Card properties
                     Id = c.Id,
                     VehicleId = c.VehicleId,
                     CollectionId = c.CollectionId,
                     Grade = c.Grade.ToString(),
                     Value = c.Value,
-                    // Vehicle properties
-                    Year = c.Vehicle.Year,
-                    Make = c.Vehicle.Make,
-                    Model = c.Vehicle.Model,
-                    Stat1 = c.Vehicle.Stat1,
-                    Stat2 = c.Vehicle.Stat2,
-                    Stat3 = c.Vehicle.Stat3,
-                    VehicleImage = c.Vehicle.Image
-                })
-                .ToListAsync();
+                    Year = vehicle?.Year ?? string.Empty,
+                    Make = vehicle?.Make ?? string.Empty,
+                    Model = vehicle?.Model ?? string.Empty,
+                    Stat1 = vehicle?.Stat1 ?? 0,
+                    Stat2 = vehicle?.Stat2 ?? 0,
+                    Stat3 = vehicle?.Stat3 ?? 0,
+                    VehicleImage = vehicle?.Image ?? string.Empty
+                };
+            }).ToList();
 
             return new UserCardWithVehicleListResponse
             {
-                Cards = cards,
+                Cards = cardResponses,
                 Total = total,
                 Limit = limit,
                 Offset = offset
@@ -314,15 +317,14 @@ namespace CarDexBackend.Services
         public async Task<CollectionProgressResponse> GetCollectionProgress(Guid userId)
         {
             // Verify user exists
-            var userExists = await _context.Users.AnyAsync(u => u.Id == userId);
-            if (!userExists)
+            var user = await _userRepo.GetByIdAsync(userId);
+            if (user == null)
                 throw new KeyNotFoundException(_sr["UserNotFoundError"]);
 
             // Get all cards owned by the user (grouped by collection and vehicle)
-            var userCards = await _context.Cards
-                .Where(c => c.UserId == userId)
+            var userCards = (await _cardRepo.FindAsync(c => c.UserId == userId))
                 .Select(c => new { c.CollectionId, c.VehicleId })
-                .ToListAsync();
+                .ToList();
 
             // If user has no cards, return empty response
             if (!userCards.Any())
@@ -338,12 +340,11 @@ namespace CarDexBackend.Services
             var collectionIds = userCards.Select(c => c.CollectionId).Distinct().ToList();
 
             // Fetch collection details for those collections
-            var collections = await _context.Collections
-                .Where(c => collectionIds.Contains(c.Id))
-                .ToListAsync();
+            var collections = await _collectionRepo.FindAsync(c => collectionIds.Contains(c.Id));
+            var collectionList = collections.ToList();
 
             // Calculate progress for each collection
-            var progressList = collections.Select(collection =>
+            var progressList = collectionList.Select(collection =>
             {
                 // Get unique vehicles owned by user in this collection
                 var ownedVehicleIds = userCards
@@ -353,7 +354,7 @@ namespace CarDexBackend.Services
                     .ToList();
 
                 int ownedCount = ownedVehicleIds.Count;
-                int totalCount = collection.Vehicles.Length;
+                int totalCount = collection.Vehicles?.Length ?? 0;
                 int percentage = totalCount > 0 ? (int)((ownedCount * 100.0) / totalCount) : 0;
 
                 return new CollectionProgressDto

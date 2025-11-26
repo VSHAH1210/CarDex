@@ -5,14 +5,20 @@
 
 import apiClient from '../api/apiClient';
 import { API_CONFIG } from '../config/api.config';
-import { Card, CardWithVehicleListResponse } from '../types/types';
+import {
+  Card,
+  CardWithVehicleListResponse,
+  CardListResponseDto,
+  UserCardListResponse,
+  CardDetailedResponse,
+} from '../types/types';
 
 export const cardService = {
   /**
    * Get all available cards
    */
-  getCards: async (): Promise<Card[]> => {
-    const response = await apiClient.get<Card[]>(
+  getCards: async (): Promise<CardListResponseDto> => {
+    const response = await apiClient.get<CardListResponseDto>(
       API_CONFIG.ENDPOINTS.CARDS.GET_ALL
     );
     return response.data;
@@ -21,8 +27,8 @@ export const cardService = {
   /**
    * Get card by ID
    */
-  getCardById: async (cardId: string): Promise<Card> => {
-    const response = await apiClient.get<Card>(
+  getCardById: async (cardId: string): Promise<CardDetailedResponse> => {
+    const response = await apiClient.get<CardDetailedResponse>(
       API_CONFIG.ENDPOINTS.CARDS.GET_BY_ID(cardId)
     );
     return response.data;
@@ -31,9 +37,9 @@ export const cardService = {
   /**
    * Get all cards owned by a specific user
    */
-  getUserCards: async (userId: string): Promise<Card[]> => {
-    const response = await apiClient.get<Card[]>(
-      API_CONFIG.ENDPOINTS.CARDS.GET_USER_CARDS(userId)
+  getUserCards: async (userId: string): Promise<UserCardListResponse> => {
+    const response = await apiClient.get<UserCardListResponse>(
+      API_CONFIG.ENDPOINTS.USERS.GET_CARDS(userId)
     );
     return response.data;
   },
@@ -54,16 +60,16 @@ export const cardService = {
     limit: number = 50,
     offset: number = 0
   ): Promise<CardWithVehicleListResponse> => {
-    const params = new URLSearchParams({
-      limit: limit.toString(),
-      offset: offset.toString(),
-    });
-
-    if (collectionId) params.append('collectionId', collectionId);
-    if (grade) params.append('grade', grade);
-
     const response = await apiClient.get<CardWithVehicleListResponse>(
-      `${API_CONFIG.ENDPOINTS.USERS.GET_CARDS_WITH_VEHICLES(userId)}?${params.toString()}`
+      API_CONFIG.ENDPOINTS.USERS.GET_CARDS_WITH_VEHICLES(userId),
+      {
+        params: {
+          limit,
+          offset,
+          collectionId,
+          grade,
+        },
+      }
     );
     return response.data;
   },

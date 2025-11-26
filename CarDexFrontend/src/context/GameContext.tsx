@@ -25,10 +25,14 @@
  */
 
 import React, { createContext, useState, ReactNode } from 'react';
-import { Card, Pack, Collection } from '../types/types';
+import {
+  CardSummaryResponse,
+  UserCardSummary,
+  UserPackSummary,
+  PackOpenResponseDto,
+} from '../types/types';
 import { cardService } from '../services/cardService';
-import { packService, OpenPackResponse } from '../services/packService';
-import { collectionService } from '../services/collectionService';
+import { packService } from '../services/packService';
 
 /**
  * GameContextType: Shape of data this context provides
@@ -49,16 +53,14 @@ import { collectionService } from '../services/collectionService';
  * - refreshInventory: Reload all user data (cards + packs + collection)
  */
 interface GameContextType {
-  cards: Card[];                                      // All cards in game
-  userCards: Card[];                                  // User's owned cards
-  packs: Pack[];                                      // Available packs
-  collection: Collection | null;                      // User's collection status
-  isLoading: boolean;                                 // Loading state
-  loadCards: () => Promise<void>;                     // Load card catalog
-  loadUserCards: (userId: string) => Promise<void>;  // Load user's cards
-  loadPacks: () => Promise<void>;                     // Load available packs
-  loadCollection: (userId: string) => Promise<void>; // Load user's collection
-  openPack: (packId: string) => Promise<OpenPackResponse>; // Open pack
+  cards: CardSummaryResponse[]; // All cards in game
+  userCards: UserCardSummary[]; // User's owned cards
+  packs: UserPackSummary[]; // User's packs
+  isLoading: boolean; // Loading state
+  loadCards: () => Promise<void>; // Load card catalog
+  loadUserCards: (userId: string) => Promise<void>; // Load user's cards
+  loadPacks: (userId: string) => Promise<void>; // Load available packs
+  openPack: (packId: string) => Promise<PackOpenResponseDto>; // Open pack
   refreshInventory: (userId: string) => Promise<void>; // Reload all user data
 }
 
@@ -69,17 +71,16 @@ interface GameProviderProps {
 }
 
 export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
-  const [cards, setCards] = useState<Card[]>([]);
-  const [userCards, setUserCards] = useState<Card[]>([]);
-  const [packs, setPacks] = useState<Pack[]>([]);
-  const [collection, setCollection] = useState<Collection | null>(null);
+  const [cards, setCards] = useState<CardSummaryResponse[]>([]);
+  const [userCards, setUserCards] = useState<UserCardSummary[]>([]);
+  const [packs, setPacks] = useState<UserPackSummary[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const loadCards = async () => {
     setIsLoading(true);
     try {
       const data = await cardService.getCards();
-      setCards(data);
+      setCards(data.cards);
     } catch (error) {
       console.error('Failed to load cards:', error);
       throw error;
@@ -92,7 +93,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     setIsLoading(true);
     try {
       const data = await cardService.getUserCards(userId);
-      setUserCards(data);
+      setUserCards(data.cards);
     } catch (error) {
       console.error('Failed to load user cards:', error);
       throw error;
@@ -101,11 +102,11 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     }
   };
 
-  const loadPacks = async () => {
+  const loadPacks = async (userId: string) => {
     setIsLoading(true);
     try {
-      const data = await packService.getPacks();
-      setPacks(data);
+      const data = await packService.getUserPacks(userId);
+      setPacks(data.packs);
     } catch (error) {
       console.error('Failed to load packs:', error);
       throw error;
@@ -114,20 +115,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     }
   };
 
-  const loadCollection = async (userId: string) => {
-    setIsLoading(true);
-    try {
-      const data = await collectionService.getCollection(userId);
-      setCollection(data);
-    } catch (error) {
-      console.error('Failed to load collection:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const openPack = async (packId: string): Promise<OpenPackResponse> => {
+  const openPack = async (packId: string): Promise<PackOpenResponseDto> => {
     setIsLoading(true);
     try {
       const result = await packService.openPack(packId);
@@ -143,8 +131,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const refreshInventory = async (userId: string) => {
     await Promise.all([
       loadUserCards(userId),
-      loadPacks(),
-      loadCollection(userId),
+      loadPacks(userId),
     ]);
   };
 
@@ -152,12 +139,10 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     cards,
     userCards,
     packs,
-    collection,
     isLoading,
     loadCards,
     loadUserCards,
     loadPacks,
-    loadCollection,
     openPack,
     refreshInventory,
   };

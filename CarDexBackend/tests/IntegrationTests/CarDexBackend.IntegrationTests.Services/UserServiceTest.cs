@@ -27,6 +27,7 @@ namespace DefaultNamespace
         private readonly IOpenTradeRepository _openTradeRepo;
         private readonly ICompletedTradeRepository _completedTradeRepo;
         private readonly IRewardRepository _rewardRepo;
+        private readonly ICollectionRepository _collectionRepo;
         private readonly IRepository<Vehicle> _vehicleRepo;
         
         //Used ChatGPT to set up the base code
@@ -44,6 +45,7 @@ namespace DefaultNamespace
             _openTradeRepo = new OpenTradeRepository(_context);
             _completedTradeRepo = new CompletedTradeRepository(_context);
             _rewardRepo = new RewardRepository(_context);
+            _collectionRepo = new CollectionRepository(_context);
             _vehicleRepo = new Repository<Vehicle>(_context);
 
             _userService = new UserService(
@@ -53,6 +55,7 @@ namespace DefaultNamespace
                 _openTradeRepo, 
                 _completedTradeRepo, 
                 _rewardRepo, 
+                _collectionRepo,
                 _vehicleRepo, 
                 new NullStringLocalizer<SharedResources>());
         }

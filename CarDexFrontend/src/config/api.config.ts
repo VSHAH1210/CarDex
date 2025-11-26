@@ -22,7 +22,7 @@ export const API_CONFIG = {
    * - Falls back to localhost:5083 if not set
    * - Change .env to switch between dev/prod without changing code
    */
-  BASE_URL: process.env.REACT_APP_API_URL || "http://localhost:5090",
+  BASE_URL: process.env.REACT_APP_API_URL || "http://localhost:5001",
 
   /**
    * ENDPOINTS: All API endpoint paths organized by resource
@@ -39,21 +39,20 @@ export const API_CONFIG = {
   ENDPOINTS: {
     // Authentication endpoints
     AUTH: {
-      LOGIN: "auth/login", // POST: Log in with email/password
-      REGISTER: "auth/register", // POST: Create new account
-      LOGOUT: "auth/logout", // POST: End session
+      LOGIN: "/auth/login", // POST: Log in with username/password
+      REGISTER: "/auth/register", // POST: Create new account
+      LOGOUT: "/auth/logout", // POST: End session
     },
 
     // Card management endpoints
     CARDS: {
       GET_ALL: "/cards", // GET: Fetch all cards
       GET_BY_ID: (id: string) => `/cards/${id}`, // GET: Fetch specific card
-      GET_USER_CARDS: (userId: string) => `/cards/user/${userId}`, // GET: User's cards
     },
 
     // Pack management endpoints
     PACKS: {
-      GET_ALL: "/packs", // GET: Fetch all packs
+      PURCHASE: "/packs/purchase", // POST: Purchase pack
       GET_BY_ID: (id: string) => `/packs/${id}`, // GET: Fetch specific pack
       OPEN_PACK: (packId: string) => `/packs/${packId}/open`, // POST: Open pack, get cards
     },
@@ -62,28 +61,31 @@ export const API_CONFIG = {
     TRADES: {
       GET_ALL: "/trades", // GET: All open trades
       GET_BY_ID: (id: string) => `/trades/${id}`, // GET: Specific trade
-      GET_USER_TRADES: (userId: string) => `/trades/user/${userId}`, // GET: User's trades
       CREATE: "/trades", // POST: Create new trade
-      ACCEPT: (tradeId: string) => `/trades/${tradeId}/accept`, // POST: Accept trade
-      CANCEL: (tradeId: string) => `/trades/${tradeId}/cancel`, // DELETE: Cancel trade
+      EXECUTE: (tradeId: string) => `/trades/${tradeId}/execute`, // POST: Execute trade
+      CANCEL: (tradeId: string) => `/trades/${tradeId}`, // DELETE: Cancel trade
+      HISTORY: "/trades/history", // GET: Completed trade history
     },
 
     // User profile endpoints
     USERS: {
       GET_PROFILE: (userId: string) => `/users/${userId}`, // GET: User profile
-      UPDATE_PROFILE: (userId: string) => `/users/${userId}`, // PUT: Update profile
+      UPDATE_PROFILE: (userId: string) => `/users/${userId}`, // PATCH: Update profile
       GET_REWARDS: (userId: string) => `/users/${userId}/rewards`, // GET: User rewards
       GET_COLLECTION_PROGRESS: (userId: string) =>
         `/users/${userId}/collection-progress`, // GET: Collection progress
       GET_CARDS_WITH_VEHICLES: (userId: string) =>
         `/users/${userId}/cards/with-vehicles`, // GET: Cards with vehicle details
+      GET_CARDS: (userId: string) => `/users/${userId}/cards`, // GET: User cards
+      GET_PACKS: (userId: string) => `/users/${userId}/packs`, // GET: User packs
+      GET_TRADES: (userId: string) => `/users/${userId}/trades`, // GET: User trades
+      GET_TRADE_HISTORY: (userId: string) =>
+        `/users/${userId}/trade-history`, // GET: User trade history
     },
 
     // Collection management endpoints
     COLLECTIONS: {
-      GET_ALL: () => `/collections`,
-      GET_COLLECTION: (userId: string) => `/collections/${userId}`, // GET: User collection
-      UPDATE_COLLECTION: (userId: string) => `/collections/${userId}`, // PUT: Update collection
+      GET_ALL: "/collections",
       GET_COLLECTION_BY_ID: (collectionId: string) => `/collections/${collectionId}`,
     },
   },

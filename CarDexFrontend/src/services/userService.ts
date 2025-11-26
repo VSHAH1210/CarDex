@@ -5,7 +5,12 @@
 
 import apiClient from '../api/apiClient';
 import { API_CONFIG } from '../config/api.config';
-import { User, Reward, CollectionProgressResponse } from '../types/types';
+import {
+  UserProfileResponse,
+  UserPublicProfileResponse,
+  UserRewardListResponse,
+  CollectionProgressResponse,
+} from '../types/types';
 
 export interface UpdateProfileRequest {
   username?: string;
@@ -16,8 +21,8 @@ export const userService = {
   /**
    * Get user profile by ID
    */
-  getProfile: async (userId: string): Promise<User> => {
-    const response = await apiClient.get<User>(
+  getProfile: async (userId: string): Promise<UserPublicProfileResponse> => {
+    const response = await apiClient.get<UserPublicProfileResponse>(
       API_CONFIG.ENDPOINTS.USERS.GET_PROFILE(userId)
     );
     return response.data;
@@ -29,8 +34,8 @@ export const userService = {
   updateProfile: async (
     userId: string,
     updates: UpdateProfileRequest
-  ): Promise<User> => {
-    const response = await apiClient.put<User>(
+  ): Promise<UserProfileResponse> => {
+    const response = await apiClient.patch<UserProfileResponse>(
       API_CONFIG.ENDPOINTS.USERS.UPDATE_PROFILE(userId),
       updates
     );
@@ -40,8 +45,8 @@ export const userService = {
   /**
    * Get user's rewards
    */
-  getRewards: async (userId: string): Promise<Reward[]> => {
-    const response = await apiClient.get<Reward[]>(
+  getRewards: async (userId: string): Promise<UserRewardListResponse> => {
+    const response = await apiClient.get<UserRewardListResponse>(
       API_CONFIG.ENDPOINTS.USERS.GET_REWARDS(userId)
     );
     return response.data;

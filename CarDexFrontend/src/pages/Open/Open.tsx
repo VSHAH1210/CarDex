@@ -4,9 +4,10 @@ import styles from "./Open.module.css";
 
 import { collectionService } from "../../services/collectionService";
 import type {
-  Collection,
+  CollectionSummary,
   CollectionDetailedResponse,
   CollectionCard,
+  CollectionListResponse,
 } from "../../types/types";
 import Pack from "../../components/Pack/Pack";
 
@@ -26,7 +27,7 @@ const Open: React.FC = () => {
   const navigate = useNavigate();
 
   // Collections from backend  
-  const [collections, setCollections] = useState<Collection[]>([]);
+  const [collections, setCollections] = useState<CollectionSummary[]>([]);
   const [isLoadingCollections, setIsLoadingCollections] = useState(false);
   const [collectionsError, setCollectionsError] = useState<string | null>(null);
 
@@ -36,7 +37,7 @@ const Open: React.FC = () => {
       setCollectionsError(null);
       try {
         const data = await collectionService.getAllCollections(); 
-        setCollections(data);
+        setCollections(data.collections);
       } catch (err) {
         console.error("Failed to fetch collections:", err);
         setCollectionsError("Could not load collections.");
@@ -126,9 +127,9 @@ const Open: React.FC = () => {
               >
                 <Pack
                   name={collection.name}
-                  packType="Collection"
-                  imageUrl={collection.image}
-                  price={collection.packPrice ?? 0}
+                  packType={collection.theme || "Collection"}
+                  imageUrl={"/logo512.png"}
+                  price={collection.cardCount * 1000}
                 />
               </div>
             ))}

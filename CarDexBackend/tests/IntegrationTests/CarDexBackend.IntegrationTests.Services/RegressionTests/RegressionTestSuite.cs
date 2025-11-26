@@ -96,7 +96,8 @@ namespace DefaultNamespace.RegressionTests
                 packRepo, 
                 openTradeRepo, 
                 completedTradeRepo, 
-                rewardRepo, 
+                rewardRepo,
+                collectionRepo, 
                 vehicleRepo, 
                 new NullStringLocalizer<SharedResources>());
             
