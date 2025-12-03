@@ -258,7 +258,7 @@ namespace CarDexBackend.Services
 
                 // Create seller reward (currency) - Reward(Guid id, Guid userId, RewardEnum type, int amount, Guid? itemId = null)
                 sellerRewardEntity = new Reward(Guid.NewGuid(), seller.Id, RewardEnum.CURRENCY_FROM_TRADE, price, null);
-                await _rewardRepo.AddAsync(sellerRewardEntity);
+                //await _rewardRepo.AddAsync(sellerRewardEntity);
                 
                 // Create buyer reward (card from seller)
                 buyerRewardEntity = new Reward(Guid.NewGuid(), buyer.Id, RewardEnum.CARD_FROM_TRADE, 0, sellerCard.Id);
@@ -283,7 +283,7 @@ namespace CarDexBackend.Services
 
                 // Create seller reward (card from buyer)
                 sellerRewardEntity = new Reward(Guid.NewGuid(), seller.Id, RewardEnum.CARD_FROM_TRADE, 0, buyerCard.Id);
-                await _rewardRepo.AddAsync(sellerRewardEntity);
+                //await _rewardRepo.AddAsync(sellerRewardEntity);
                 
                 // Create buyer reward (card from seller)
                 buyerRewardEntity = new Reward(Guid.NewGuid(), buyer.Id, RewardEnum.CARD_FROM_TRADE, 0, sellerCard.Id);
@@ -305,7 +305,7 @@ namespace CarDexBackend.Services
             await _userRepo.UpdateAsync(seller);
 
             // Add buyer reward
-            await _rewardRepo.AddAsync(buyerRewardEntity);
+            //await _rewardRepo.AddAsync(buyerRewardEntity);
 
             // CompletedTrade constructor: CompletedTrade(Guid id, TradeEnum type, Guid sellerUserId, Guid sellerCardId, Guid buyerUserId, int price = 0, Guid? buyerCardId = null)
             var completedTradeId = Guid.NewGuid();
