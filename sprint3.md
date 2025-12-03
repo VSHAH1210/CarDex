@@ -51,7 +51,7 @@ We think that the freedom this course gives students in choosing everything rela
 > It follows that, given our permissible usage of AI in this project, I used AI from the start to plan out everything related to the architecture and data model. The queries usually started with an explanation of the project and a definition of the domain objects (Vehicles, Cards, Trades, etc.), alongside a request on how to best setup the data model to maximize parallel development. I used the MVVM method from the start because I have experience with Client - API/Controllers - Database layering systems. Responses were usually very accurate and helped me brainstorm the high-level decisions, but they did attempt to overcomplicate things if I kept a chat going for too long. Additionally, I helped define all the styles and design of the app inside Figma, which was then ported over to React-friendly files, such as .css files and classes. As a final note, since we mentioned how the data model itself had major, unknown gaps in it from the start, the AI I used also did not catch these issues. Whether that was an issue in the lack of detail in my prompts, or the AI simply did what it was told without worry about potential gaps, we will never know; use AI as a supplementary tool, not a strict guide!
 
 #### Ian
-> 
+> To-Do
 
 ### Subhash 
 >
